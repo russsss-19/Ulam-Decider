@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ulam Decider 🍲 — Tapusin na ang Tanong na "Anong Ulam?"</title>
+  <meta name="description" content="AI-powered Filipino food decider. Upload your fridge photo and let Nanay AI decide your ulam — para wala nang away sa hapag-kainan." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&family=Caveat:wght@600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+
+  <div class="container">
+
+    <!-- ========== HERO ========== -->
+    <header class="hero">
+      <div class="hero-badge">🇵🇭 Filipino Food Paralysis Solver</div>
+      <h1 class="hero-title">ULAM<br/><span class="title-accent">DECIDER</span></h1>
+      <p class="hero-sub">Tapusin na ang <em>"Anong ulam ngayon?"</em><br/>Mag-upload ng litrato ng ref mo at hayaan ang Nanay AI mag-decide.</p>
+
+      <!-- The classic convo animation -->
+      <div class="convo-bubble-wrap">
+        <div class="bubble bubble-left" id="b1">Anong ulam ngayon? 🍽️</div>
+        <div class="bubble bubble-right" id="b2">Ikaw na bahala. 😑</div>
+        <div class="bubble bubble-left" id="b3">Ano bang gusto mo?</div>
+        <div class="bubble bubble-right" id="b4">Kahit ano naman.</div>
+        <div class="bubble bubble-ai" id="b5">🤖 AKO NA BAHALA. HAYAAN NYO AKO.</div>
+      </div>
+
+      <!-- API Key -->
+      <div class="api-box">
+        <label for="gemini-key">🔑 Gemini API Key</label>
+        <input type="password" id="gemini-key" placeholder="Ilagay ang iyong Gemini API Key..." autocomplete="off" />
+        <span class="api-hint">Free key sa <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> — kailangan para sa AI recipe generation</span>
+      </div>
+    </header>
+
+    <!-- ========== MAIN APP ========== -->
+    <main class="app-main">
+
+      <!-- ===== STEP 1: INPUT ===== -->
+      <div class="step-card" id="step1">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div>
+            <span class="step-label">Step 1</span>
+            <h2 class="step-title">📸 Anong Meron sa Ref Mo?</h2>
+          </div>
+          <div class="step-status" id="s1-status"></div>
+        </div>
+        <div class="step-body">
+
+          <!-- Input mode toggle -->
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="mode-photo" onclick="switchMode('photo')">📸 Litratuin ang Ref</button>
+            <button class="mode-btn" id="mode-text" onclick="switchMode('text')">✍️ Isulat ang Sangkap</button>
+          </div>
+
+          <!-- Photo Upload Mode -->
+          <div id="photo-mode">
+            <div class="upload-zone" id="upload-zone">
+              <div class="upload-icon">📷</div>
+              <div class="upload-text">I-drag ang litrato ng ref mo dito</div>
+              <div class="upload-sub">o mag-click para pumili ng file</div>
+              <input type="file" id="file-input" accept="image/*" style="display:none" />
+            </div>
+            <div class="preview-wrap hidden" id="preview-wrap">
+              <img id="preview-img" src="" alt="Ref preview" />
+              <button class="remove-btn" onclick="removePhoto()">✕ Palitan</button>
+            </div>
+          </div>
+
+          <!-- Text Input Mode -->
+          <div id="text-mode" class="hidden">
+            <textarea
+              id="ingredients-text"
+              class="ingredient-input"
+              placeholder="Hal: Baboy, tokwa, kamatis, sibuyas, toyo, bawang, talong, dalawang itlog... (pwedeng Taglish!)"
+              rows="4"
+            ></textarea>
+            <div class="quick-tags">
+              <span class="tag-label">Mabilis na lagay:</span>
+              <button class="quick-tag" onclick="addTag('Manok')">🐔 Manok</button>
+              <button class="quick-tag" onclick="addTag('Baboy')">🐷 Baboy</button>
+              <button class="quick-tag" onclick="addTag('Isda')">🐟 Isda</button>
+              <button class="quick-tag" onclick="addTag('Tofu/Tokwa')">🧊 Tokwa</button>
+              <button class="quick-tag" onclick="addTag('Kamatis')">🍅 Kamatis</button>
+              <button class="quick-tag" onclick="addTag('Talong')">🍆 Talong</button>
+              <button class="quick-tag" onclick="addTag('Kangkong')">🌿 Kangkong</button>
+              <button class="quick-tag" onclick="addTag('Itlog')">🥚 Itlog</button>
+            </div>
+          </div>
+
+          <!-- Budget & Context Row -->
+          <div class="context-row">
+            <div class="context-item">
+              <label class="ctx-label">💰 Budget</label>
+              <select id="budget-select" class="ctx-select">
+                <option value="tipid">Tipid mode (₱50-150)</option>
+                <option value="normal" selected>Normal (₱150-400)</option>
+                <option value="splurge">Splurge (₱400+)</option>
+              </select>
+            </div>
+            <div class="context-item">
+              <label class="ctx-label">👥 Kumakain</label>
+              <select id="serving-select" class="ctx-select">
+                <option value="1">1 tao</option>
+                <option value="2-3">2-3 tao</option>
+                <option value="4-5" selected>4-5 tao</option>
+                <option value="family">Buong pamilya + kapitbahay</option>
+              </select>
+            </div>
+            <div class="context-item">
+              <label class="ctx-label">🍳 Gusto</label>
+              <select id="vibe-select" class="ctx-select">
+                <option value="auto">Bahala na si AI</option>
+                <option value="sabaw">May sabaw (comfort food)</option>
+                <option value="prito">Prito / nilaga</option>
+                <option value="special">May occasion kasi</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="decide-btn" id="decide-btn" onclick="runDecider()">
+            <span class="btn-icon">🍲</span>
+            <span id="decide-btn-text">Hayaan ang Nanay AI Mag-Decide!</span>
+          </button>
+          <div class="error-msg hidden" id="error-msg"></div>
+
+        </div>
+      </div>
+
+      <!-- ===== STEP 2: AI THINKING ===== -->
+      <div class="step-card hidden" id="step2">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div>
+            <span class="step-label">Step 2</span>
+            <h2 class="step-title">🤔 Pinagdedebatian ng AI...</h2>
+          </div>
+          <div class="step-status" id="s2-status"></div>
+        </div>
+        <div class="step-body">
+          <div class="think-loading" id="think-loading">
+            <div class="nanay-think">
+              <div class="nanay-avatar">👩‍🍳</div>
+              <div class="think-bubbles">
+                <div class="think-dot"></div>
+                <div class="think-dot"></div>
+                <div class="think-dot"></div>
+              </div>
+            </div>
+            <div class="think-status" id="think-status">Tinitingnan ang mga sangkap...</div>
+          </div>
+
+          <!-- Detected Ingredients -->
+          <div class="ingredients-result hidden" id="ingredients-result">
+            <div class="result-label">✅ Mga Nakitang Sangkap</div>
+            <div class="ingredient-chips" id="ingredient-chips"></div>
+          </div>
+
+          <!-- AI Decision reveal -->
+          <div class="decision-reveal hidden" id="decision-reveal">
+            <div class="decision-label">🍲 Si Nanay AI ay nagdesisyon:</div>
+            <div class="dish-name-big" id="dish-name-big">—</div>
+            <div class="dish-why" id="dish-why">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STEP 3: RECIPE OUTPUT ===== -->
+      <div class="step-card hidden" id="step3">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <div>
+            <span class="step-label">Step 3</span>
+            <h2 class="step-title">📋 Lutuin Na! (Recipe ni Nanay AI)</h2>
+          </div>
+          <div class="step-status" id="s3-status"></div>
+        </div>
+        <div class="step-body">
+
+          <!-- Meta Row -->
+          <div class="recipe-meta" id="recipe-meta">
+            <div class="meta-chip" id="meta-time">⏱️ —</div>
+            <div class="meta-chip" id="meta-cost">💰 —</div>
+            <div class="meta-chip" id="meta-serving">👥 —</div>
+            <div class="meta-chip" id="meta-diff">🔥 —</div>
+          </div>
+
+          <!-- Nanay Quote -->
+          <div class="nanay-quote-box">
+            <div class="nanay-icon">👩‍🍳</div>
+            <blockquote class="nanay-quote" id="nanay-quote">—</blockquote>
+          </div>
+
+          <!-- Ingredients Checklist -->
+          <div class="section-title">🛒 Mga Sangkap</div>
+          <div class="ingredient-list" id="ingredient-list"></div>
+
+          <!-- Missing → GrabMart -->
+          <div class="grab-box hidden" id="grab-box">
+            <div class="grab-title">🛵 Kulang pa! I-order sa GrabMart:</div>
+            <div class="grab-links" id="grab-links"></div>
+          </div>
+
+          <!-- Steps -->
+          <div class="section-title" style="margin-top:28px;">👩‍🍳 Paano Lutuin (Sabi ni Nanay)</div>
+          <ol class="recipe-steps" id="recipe-steps"></ol>
+
+          <!-- Share / Download -->
+          <div class="output-actions">
+            <canvas id="recipe-canvas" width="640" height="400" style="display:none"></canvas>
+            <button class="action-btn primary" id="download-btn" onclick="downloadRecipeCard()">🖼️ I-download ang Recipe Card</button>
+            <button class="action-btn secondary" id="retry-btn" onclick="location.reload()">🔄 Mag-decide ulit</button>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="footer">
+      <p>Ulam Decider 🍲 — Built for Philippine Hackathon 2026 🇵🇭<br/>
+      <em>Disclaimer: Ang Nanay AI ay hindi responsable sa sunog na ulam. Bantayan mo 'yan.</em></p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
